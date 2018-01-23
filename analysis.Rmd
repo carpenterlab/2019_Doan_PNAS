@@ -7,24 +7,46 @@ output: html_notebook
 ```{r, message=FALSE}
 library(tidyverse)
 library(stringr)
+library(magrittr)
+library(e1071)
 ```
 
 Read the data
 
 ```{r, message=FALSE}
 
-dl_age <- read_csv("../../results/manual/SVR_predict_dl.csv", 
-                   col_names = c("dl_age"), col_types = cols(dl_age = col_double()))
+#dataset <- "4bags"
 
-manual_age <- read_csv("../../results/manual/SVR_predict_human.csv", 
+dataset <- "10bags"
+
+if (dataset == "4bags") {
+  dl_age <- read_csv("../../results/manual/4bags/SVR_predict_dl.csv", 
+                     col_names = c("dl_age"), col_types = cols(dl_age = col_double()))
+  
+  manual_age <- read_csv("../../results/manual/4bags/SVR_predict_human.csv", 
                        col_names = c("manual_age"), col_types = cols(manual_age = col_double()))
+  
+}
 
-true_age <- read_csv("../../results/manual/groundtruth.csv", 
+true_age <- read_csv(sprintf("../../results/manual/%s/groundtruth.csv", dataset), 
                      col_names = c("true_age"), col_types = cols(true_age = col_double()))
 
-dl_frac <- read_csv("../../results/manual/fraction_dl.csv", col_names = FALSE) 
+dl_frac <- read_csv(sprintf("../../results/manual/%s/fraction_dl.csv", dataset), col_names = FALSE) 
 
-manual_frac <- read_csv("../../results/manual/fraction_human.csv", col_names = FALSE) 
+manual_frac <- read_csv(sprintf("../../results/manual/%s/fraction_human.csv", dataset), col_names = FALSE) 
+
+bag <- read_csv(sprintf("../../results/manual/%s/samples.csv", dataset), col_names = c("bag")) 
+
+```
+
+
+Define train and test split
+
+```{r}
+
+test_set <- str_detect(bag$bag, "2$")
+
+train_set <- !test_set
 
 ```
 
@@ -52,7 +74,7 @@ dl_mi <- data_frame(mi = compute_mi(dl_frac))
 # MI based on manually-gated morphologies
 manual_mi <- data_frame(mi = compute_mi(manual_frac))
 
-qplot(dl_mi$mi, manual_mi$mi) + geom_abline(slope = 1, color = "red", linetype = 2) + coord_equal()
+qplot(dl_mi$mi, manual_mi$mi, geom = "point") + geom_abline(slope = 1, color = "red", linetype = 2) + coord_equal()
 ```
 
 Predict age based on MI. Train on manual MI, test and evaluate on DL MI
@@ -62,43 +84,68 @@ manual_mi_df <- bind_cols(true_age, manual_mi)
 
 dl_mi_df <- bind_cols(true_age, dl_mi)
 
-mi_model <- lm(data = manual_mi_df, formula = true_age ~ mi)
+mi_model <- lm(data = manual_mi_df[train_set, ], formula = true_age ~ mi)
 
 summary(mi_model)
 
 plot(mi_model)
 
-dl_mi_predicted_age <- predict(mi_model, dl_mi_df)
+dl_mi_predicted_age <- predict(mi_model, dl_mi_df[test_set, ])
 
-qplot(true_age$true_age, dl_mi_predicted_age) + geom_abline(slope = 1)
+qplot(true_age$true_age[test_set], dl_mi_predicted_age) + geom_abline(slope = 1)
+
 ```
 
 Predict age based on morphology fractions. Train on manual fractions, test and evaluate on DL fractions. 
-
-Because there are only 6 - 1 = 5 indepedent variations, given that the 6 variables have been
-normalized to sum to one, we remove the intercept when fitting an lm. 
 
 ```{r}
 manual_frac_df <- bind_cols(true_age, manual_frac)
 
 dl_frac_df <-  bind_cols(true_age, dl_frac)
 
-frac_model <- lm(data = manual_frac_df, formula = true_age ~ X1 + X2 + X3 + X4 + X5 + X6 - 1)
+```
 
-summary(frac_model)
+Because there are only 6 - 1 = 5 indepedent variations, given that the 6 variables have been
+normalized to sum to one, we remove the intercept when fitting an lm. 
 
-plot(frac_model)
+```{r}
+frac_model_lm <- lm(data = manual_frac_df[train_set, ], formula = true_age ~ X1 + X2 + X3 + X4 + X5 + X6 - 1)
 
-dl_frac_predicted_age <- predict(frac_model, dl_frac_df)
+summary(frac_model_lm)
 
-qplot(true_age$true_age, dl_frac_predicted_age) + geom_abline(slope = 1)
+plot(frac_model_lm)
+
+dl_frac_predicted_age_lm <- predict(frac_model_lm, dl_frac_df[test_set, ])
+
+qplot(true_age$true_age[test_set], dl_frac_predicted_age_lm) + geom_abline(slope = 1)
+```
+
+Predict age based on morphology fractions, but this time using SVR.
+
+```{r}
+
+frac_model_svr <- svm(true_age ~ X1 + X2 + X3 + X4 + X5 + X6 - 1, data = manual_frac_df[train_set, ])
+
+summary(frac_model_svr)
+
+plot(frac_model_svr)
+
+dl_frac_predicted_age_svr <- predict(frac_model_svr, dl_frac_df[test_set, ])
+
+qplot(true_age$true_age[test_set], dl_frac_predicted_age_svr) + geom_abline(slope = 1)
 ```
 
 
 ```{r}
-age <- bind_cols(dl_age, manual_age, true_age, 
+age <- bind_cols(true_age[test_set, ], 
                  data_frame(dl_mi_predicted_age), 
-                 data_frame(dl_frac_predicted_age))
+                 data_frame(dl_frac_predicted_age_lm),
+                 data_frame(dl_frac_predicted_age_svr))
+
+if (dataset == "4bags") {
+  age %<>% bind_cols(dl_age[test_set, ], manual_age[test_set, ])
+
+}
 
 age <- age %>% gather(type, age, -true_age)
 ```
