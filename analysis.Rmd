@@ -1,0 +1,124 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r, message=FALSE}
+library(tidyverse)
+library(stringr)
+```
+
+Read the data
+
+```{r, message=FALSE}
+
+dl_age <- read_csv("../../results/manual/SVR_predict_dl.csv", 
+                   col_names = c("dl_age"), col_types = cols(dl_age = col_double()))
+
+manual_age <- read_csv("../../results/manual/SVR_predict_human.csv", 
+                       col_names = c("manual_age"), col_types = cols(manual_age = col_double()))
+
+true_age <- read_csv("../../results/manual/groundtruth.csv", 
+                     col_names = c("true_age"), col_types = cols(true_age = col_double()))
+
+dl_frac <- read_csv("../../results/manual/fraction_dl.csv", col_names = FALSE) 
+
+manual_frac <- read_csv("../../results/manual/fraction_human.csv", col_names = FALSE) 
+
+```
+
+Define function to compute morphology index
+
+```{r}
+# compute morphology index as defined by clinicians
+compute_mi <- function(x) 
+  rowSums(sweep(as.matrix(x), MARGIN = 2, STATS = c(1.0, 0.8, 0.6, 0.4, 0.2, 0.8), FUN = "*"))
+
+# example
+compute_mi(tribble(~X1, ~X2, ~X3, ~X4, ~X5, ~X6,
+                   1, 1, 1, 1, 1, 1,
+                   1, 1, 0, 0, 0, 0,
+                   1, 0, 0, 0, 0, 0))
+
+```
+
+Compute MI based on DL-predicted morphologies and manually-gated morphologies
+```{r}
+
+# MI based on DL-predicted morphologies
+dl_mi <- data_frame(mi = compute_mi(dl_frac))
+
+# MI based on manually-gated morphologies
+manual_mi <- data_frame(mi = compute_mi(manual_frac))
+
+qplot(dl_mi$mi, manual_mi$mi) + geom_abline(slope = 1, color = "red", linetype = 2) + coord_equal()
+```
+
+Predict age based on MI. Train on manual MI, test and evaluate on DL MI
+
+```{r}
+manual_mi_df <- bind_cols(true_age, manual_mi)
+
+dl_mi_df <- bind_cols(true_age, dl_mi)
+
+mi_model <- lm(data = manual_mi_df, formula = true_age ~ mi)
+
+summary(mi_model)
+
+plot(mi_model)
+
+dl_mi_predicted_age <- predict(mi_model, dl_mi_df)
+
+qplot(true_age$true_age, dl_mi_predicted_age) + geom_abline(slope = 1)
+```
+
+Predict age based on morphology fractions. Train on manual fractions, test and evaluate on DL fractions. 
+
+Because there are only 6 - 1 = 5 indepedent variations, given that the 6 variables have been
+normalized to sum to one, we remove the intercept when fitting an lm. 
+
+```{r}
+manual_frac_df <- bind_cols(true_age, manual_frac)
+
+dl_frac_df <-  bind_cols(true_age, dl_frac)
+
+frac_model <- lm(data = manual_frac_df, formula = true_age ~ X1 + X2 + X3 + X4 + X5 + X6 - 1)
+
+summary(frac_model)
+
+plot(frac_model)
+
+dl_frac_predicted_age <- predict(frac_model, dl_frac_df)
+
+qplot(true_age$true_age, dl_frac_predicted_age) + geom_abline(slope = 1)
+```
+
+
+```{r}
+age <- bind_cols(dl_age, manual_age, true_age, 
+                 data_frame(dl_mi_predicted_age), 
+                 data_frame(dl_frac_predicted_age))
+
+age <- age %>% gather(type, age, -true_age)
+```
+
+
+```{r}
+
+cor_summaries <- age %>% split(age$type) %>% map(function(df) cor(df$true_age, df$age))
+
+cor_summaries
+
+p <- 
+ggplot(age, aes(true_age, age)) + 
+  geom_point() + 
+  geom_smooth(method = "loess") + 
+  geom_abline(slope = 1, color = "red", linetype = 2) + 
+  coord_equal() + facet_wrap(~type, nrow = 1) 
+
+p
+
+ggsave("regression_plot.pdf", p, dpi = 300, width = 8)
+```
+
