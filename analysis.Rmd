@@ -40,6 +40,84 @@ bag <- read_csv(sprintf("../../results/manual/%s/samples.csv", dataset), col_nam
 ```
 
 
+```{r}
+data_df <- 
+  bind_cols(bag %>% mutate(bag_id = str_sub(bag, 1,1), replicate_id = str_sub(bag, 2,2)) %>% select(-bag), 
+            true_age)
+
+data_df %<>% 
+  mutate(training = bag_id %in% c("A", "B", "D", "E", "F", "H"),
+         testing = bag_id %in% c("C"),
+         holdout = bag_id %in% c("G", "I", "J"))
+data_df_summary <- data_frame(bag_id = LETTERS[1:10])
+
+data_df_summary$accuracy <- c(90.7, 91.0, 91.4, 90.9, 91.0, 89.6, 90.0, 90.3, 88.7, 89.4)
+
+p <- 
+data_df %>% 
+  distinct(bag_id, true_age) %>% 
+  mutate(bag_id = factor(bag_id, levels = rev(LETTERS[1:10]))) %>%
+  ggplot(aes(true_age, bag_id)) + 
+  geom_spoke(aes(angle = pi/2), radius=.8) +
+  theme_bw() +
+  theme(axis.text.x = element_blank()) +
+  theme(panel.grid = element_blank()) +
+  theme(axis.title = element_blank()) +
+  theme(panel.border	= element_blank())
+
+p
+
+ggsave("timepoints.pdf", height = 8, width = 2)
+
+
+```
+
+
+```{r, warning=FALSE}
+p <- 
+data_df %>% 
+  distinct(bag_id, training, testing, holdout) %>% 
+  gather(type, value, -bag_id) %>% 
+  mutate(bag_id = factor(bag_id, levels = rev(LETTERS[1:10]))) %>%
+  mutate(type = factor(type, levels = c("training", "testing", "holdout"))) %>%
+  ggplot(aes(type, bag_id, fill = value)) + 
+  geom_tile(aes(width = .7, height = .7)) + 
+  coord_equal() + 
+  scale_fill_manual(values = c("#FFFFFF", "#000000"), guide = FALSE) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=45, hjust = 1)) +
+  theme(panel.grid = element_blank()) +
+  theme(axis.title = element_blank()) +
+  theme(panel.border	= element_blank())
+
+p
+
+ggsave("train_test_holdout.pdf", height = 8, width = 3)
+
+```
+
+```{r}
+p <-
+data_df_summary %>%
+  mutate(bag_id = factor(bag_id, levels = rev(LETTERS[1:10]))) %>%
+  ggplot(aes(bag_id, accuracy)) + 
+  scale_y_continuous(limits = c(0, 100)) +
+  geom_col(alpha = 0.3) + 
+  geom_text(aes(label = sprintf("%.1f%%", accuracy)), nudge_y = -25, size = 5) + 
+  coord_flip() +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  theme(axis.text.x = element_blank()) +
+  theme(axis.title = element_blank()) +
+  theme(panel.border	= element_blank())
+
+p
+
+ggsave("accuracy.pdf", height = 9, width = 2)
+
+```
+
+
 Define train and test split
 
 ```{r}
