@@ -230,11 +230,9 @@ rmse_summaries <-
   age %>% 
   split(age$type) %>% 
   map_df(function(df) rmse(df$true_age, df$age)) %>%
-  gather(model, cor)
+  gather(model, rmse)
 
-cor_summaries
-
-rmse_summaries
+cor_summaries %>% inner_join(rmse_summaries)
 
 p <- 
 ggplot(age, aes(true_age, age)) + 
