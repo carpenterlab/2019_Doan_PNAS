@@ -6,8 +6,8 @@
         33467,
         50
       ],
-      "tensorPath": "https://raw.githubusercontent.com/carpenterlab/2019_doan_submitted/master/Publish/CellProfiler_Feature_extraction/Data/Step4/Output/after_feature_selection_scaled_data.txt",
-      "metadataPath": "https://raw.githubusercontent.com/carpenterlab/2019_doan_submitted/master/Publish/CellProfiler_Feature_extraction/Data/Step4/Output/ground_truth_labels.tsv"
+      "tensorPath": "https://raw.githubusercontent.com/carpenterlab/2019_doan_submitted/master/CellProfiler_Feature_extraction/Data/Step4/Output/after_feature_selection_scaled_data.txt",
+      "metadataPath": "https://raw.githubusercontent.com/carpenterlab/2019_doan_submitted/master/CellProfiler_Feature_extraction/Data/Step4/Output/ground_truth_labels.tsv"
     }
   ]
 }
