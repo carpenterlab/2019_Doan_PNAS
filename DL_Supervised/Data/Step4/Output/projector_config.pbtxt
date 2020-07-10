@@ -1,0 +1,20 @@
+{
+  "embeddings": [
+    {
+      "tensorName": "Supervised learning tensor",
+      "tensorShape": [
+        10246,
+        3
+      ],
+      "tensorPath": "https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/15374519/features_pool5_selected_cells_for_viz.txt",
+      "metadataPath": "https://raw.githubusercontent.com/carpenterlab/2019_doan_submitted/master/DL_Supervised/Data/Step4/Output/Supervised_metadata_label_selected_cells_for_viz.tsv",
+      "sprite": {
+        "imagePath": "https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/15374516/sprite_selected_cells_for_viz.png",
+        "singleImageDim": [
+          48,
+          48
+        ]
+      }
+    }
+  ]
+}
