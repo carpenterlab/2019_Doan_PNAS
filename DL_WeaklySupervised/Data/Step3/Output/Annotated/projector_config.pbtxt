@@ -7,7 +7,7 @@
         1024
       ],
       "tensorPath": "https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/15374357/features_res4a_relu_selected_cells_for_viz.txt",
-      "metadataPath": "https://raw.githubusercontent.com/carpenterlab/2019_doan_submitted/master/Publish/DL_WeaklySupervised/Data/Step3/Output/Annotated/metadata_label_selected_cells_for_viz.tsv",
+      "metadataPath": "https://raw.githubusercontent.com/carpenterlab/2019_doan_submitted/master/DL_WeaklySupervised/Data/Step3/Output/Annotated/metadata_label_selected_cells_for_viz.tsv",
       "sprite": {
         "imagePath": "https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/15374351/sprite_selected_cells_for_viz.png",
         "singleImageDim": [
