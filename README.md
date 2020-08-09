@@ -1,5 +1,5 @@
 # 2019_DeepLearning_RBC
-This is a vignette to perform supvervised classification and weakly supervised regression for Label-free assessment of red blood cell storage lesions, as well as a comparative analysis using conventional image processing (CellProfiler)
+This is a vignette to perform supervised classification and weakly supervised regression for Label-free assessment of red blood cell storage lesions, as well as a comparative analysis using conventional image processing (CellProfiler)
 
 
 # Installation
